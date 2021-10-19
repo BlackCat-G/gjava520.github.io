@@ -1,0 +1,627 @@
+I"��<p>​	layout:     post
+​	title:      “单点登录原理与简单实现”
+​	date:       2021-10-19 12
+​	author:     “wblearn”
+​	header-img: “img/post-bg-rwd.jpg”
+​	tags:
+  	  - Web</p>
+
+<h1 id="promise">Promise</h1>
+
+<h2 id="export导出关键字">Export导出关键字</h2>
+
+<p>module.export导出一个变量或函数</p>
+
+<div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">//js导出单个函数</span>
+<span class="c1">//另一个文件引用为：const s = retuire('./script.js');</span>
+<span class="nx">module</span><span class="p">.</span><span class="nx">exports</span><span class="p">.</span><span class="nx">sum</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">sum</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span><span class="nx">b</span><span class="p">){</span>
+    <span class="k">return</span> <span class="nx">a</span><span class="o">+</span><span class="nx">b</span><span class="p">;</span>
+<span class="p">};</span>
+<span class="c1">//js导出单个变量</span>
+<span class="nx">module</span><span class="p">.</span><span class="nx">exports</span><span class="p">.</span><span class="nx">name</span> <span class="o">=</span> <span class="dl">'</span><span class="s1">小白妹妹</span><span class="dl">'</span><span class="p">;</span>
+<span class="c1">//js导出多个函数，可以重命名</span>
+<span class="nx">module</span><span class="p">.</span><span class="nx">exports</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="na">SUM</span><span class="p">:</span><span class="nx">sum</span><span class="p">,</span>
+  <span class="na">DIV</span><span class="p">:</span><span class="nx">div</span><span class="p">,</span>
+  <span class="na">sub</span><span class="p">:</span><span class="nx">sub</span>
+<span class="p">};</span>
+<span class="c1">//js导出一个类</span>
+<span class="nx">module</span><span class="p">.</span><span class="nx">exports</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">tools</span><span class="p">;</span>
+</code></pre></div></div>
+
+<h2 id="promise初体验">promise初体验</h2>
+
+<p>参数为：一个构造函数，该构造函数有两个参数，一个成功的参数（resolve），一个失败参数（reject），这两个参数用来表示promise对象的状态，并且可以向调用的地方传递参数,调用方可以有两个回到函数第一个为成功时的回调，第二个为失败的回调</p>
+
+<div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">const</span>  <span class="nx">p</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Promise</span><span class="p">((</span><span class="nx">resolve</span><span class="p">,</span><span class="nx">reject</span><span class="p">)</span><span class="o">=&gt;</span><span class="p">{</span>
+    <span class="nx">setTimeout</span><span class="p">(()</span><span class="o">=&gt;</span><span class="p">{</span>
+        <span class="kd">let</span> <span class="nx">n</span> <span class="o">=</span> <span class="mi">30</span><span class="p">;</span>
+        <span class="k">if</span><span class="p">(</span><span class="nx">n</span><span class="o">&lt;=</span><span class="mi">30</span><span class="p">){</span>
+            <span class="nx">reject</span><span class="p">(</span><span class="nx">n</span><span class="p">);</span>
+        <span class="p">}</span><span class="k">else</span><span class="p">{</span>  
+            <span class="nx">resolve</span><span class="p">(</span><span class="nx">n</span><span class="p">);</span>
+        <span class="p">}</span>
+    <span class="p">},</span><span class="mi">1000</span><span class="p">);</span>
+<span class="p">});</span>
+<span class="nx">p</span><span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="nx">value</span><span class="o">=&gt;</span><span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="dl">"</span><span class="s2">恭喜恁啊中奖了啊</span><span class="dl">"</span><span class="o">+</span><span class="nx">value</span><span class="p">);</span>
+<span class="p">},</span><span class="nx">reson</span><span class="o">=&gt;</span><span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="dl">"</span><span class="s2">很遗憾啊，您没能中奖啊</span><span class="dl">"</span><span class="o">+</span><span class="nx">reson</span><span class="p">);</span>
+<span class="p">})</span>
+</code></pre></div></div>
+
+<p>promise封装文件操作案例</p>
+
+<div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">const</span> <span class="nx">fs</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="dl">'</span><span class="s1">fs</span><span class="dl">'</span><span class="p">);</span>
+<span class="c1">//普通方式</span>
+<span class="nx">fs</span><span class="p">.</span><span class="nx">readFile</span><span class="p">(</span><span class="dl">'</span><span class="s1">./read/a.txt</span><span class="dl">'</span><span class="p">,(</span><span class="nx">error</span><span class="p">,</span><span class="nx">value</span><span class="p">)</span><span class="o">=&gt;</span><span class="p">{</span>
+    <span class="k">if</span><span class="p">(</span><span class="nx">error</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">error</span><span class="p">;</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">value</span><span class="p">.</span><span class="nx">toString</span><span class="p">());</span>
+<span class="p">});</span>
+<span class="c1">//Pormise方式</span>
+<span class="kd">let</span> <span class="nx">p</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Promise</span><span class="p">((</span><span class="nx">resolve</span><span class="p">,</span><span class="nx">reject</span><span class="p">)</span><span class="o">=&gt;</span><span class="p">{</span>
+    <span class="nx">fs</span><span class="p">.</span><span class="nx">readFile</span><span class="p">(</span><span class="dl">'</span><span class="s1">./read/a.txt</span><span class="dl">'</span><span class="p">,(</span><span class="nx">err</span><span class="p">,</span><span class="nx">value</span><span class="p">)</span><span class="o">=&gt;</span><span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="nx">reject</span><span class="p">(</span><span class="nx">err</span><span class="p">);</span>
+        <span class="nx">resolve</span><span class="p">(</span><span class="nx">value</span><span class="p">);</span>
+    <span class="p">});</span>
+<span class="p">})</span>
+<span class="c1">//调用</span>
+<span class="nx">p</span><span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="nx">value</span><span class="o">=&gt;</span><span class="p">{</span>
+   <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">value</span><span class="p">.</span><span class="nx">toString</span><span class="p">());</span> 
+<span class="p">},</span><span class="nx">err</span><span class="o">=&gt;</span><span class="p">{</span>
+   <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">err</span><span class="p">);</span>
+<span class="p">});</span>
+</code></pre></div></div>
+
+<p>封装一个函数mineReadFile读取文件内容</p>
+
+<p>参数：path文件路径</p>
+
+<p>返回：promise对象</p>
+
+<div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">function</span>  <span class="nx">mineReadFile</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="k">new</span> <span class="nb">Promise</span><span class="p">((</span><span class="nx">resolve</span><span class="p">,</span><span class="nx">reject</span><span class="p">)</span><span class="o">=&gt;</span><span class="p">{</span>
+        <span class="nx">require</span><span class="p">(</span><span class="dl">'</span><span class="s1">fs</span><span class="dl">'</span><span class="p">).</span><span class="nx">readFile</span><span class="p">(</span><span class="nx">path</span><span class="p">,(</span><span class="nx">err</span><span class="p">,</span><span class="nx">data</span><span class="p">)</span><span class="o">=&gt;</span><span class="p">{</span>
+                <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="nx">reject</span><span class="p">(</span><span class="nx">err</span><span class="p">);</span>
+                <span class="nx">resolve</span><span class="p">(</span><span class="nx">data</span><span class="p">);</span>
+        <span class="p">});</span>
+    <span class="p">});</span>
+<span class="p">}</span>
+<span class="nx">mineReadFile</span><span class="p">(</span><span class="dl">'</span><span class="s1">./read/a.txt</span><span class="dl">'</span><span class="p">).</span><span class="nx">then</span><span class="p">(</span><span class="nx">value</span><span class="o">=&gt;</span><span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">value</span><span class="p">.</span><span class="nx">toString</span><span class="p">());</span> 
+<span class="p">},</span><span class="nx">err</span><span class="o">=&gt;</span><span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">err</span><span class="p">);</span>
+<span class="p">});</span>
+</code></pre></div></div>
+
+<p>利用nodejs自动封装一个函数为Promise</p>
+
+<div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">const</span> <span class="nx">util</span>  <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="dl">'</span><span class="s1">util</span><span class="dl">'</span><span class="p">);</span>
+
+<span class="kd">const</span> <span class="nx">fs</span>  <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="dl">'</span><span class="s1">fs</span><span class="dl">'</span><span class="p">);</span>
+<span class="kd">let</span> <span class="nx">p</span>  <span class="o">=</span> <span class="nx">util</span><span class="p">.</span><span class="nx">promisify</span><span class="p">(</span><span class="nx">fs</span><span class="p">.</span><span class="nx">readFile</span><span class="p">);</span>
+
+<span class="nx">p</span><span class="p">(</span><span class="dl">'</span><span class="s1">./read/a.txt</span><span class="dl">'</span><span class="p">).</span><span class="nx">then</span><span class="p">(</span><span class="nx">value</span><span class="o">=&gt;</span><span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">value</span><span class="p">.</span><span class="nx">toString</span><span class="p">());</span>
+<span class="p">},</span><span class="nx">err</span><span class="o">=&gt;</span><span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">err</span><span class="p">);</span>
+<span class="p">})</span>
+</code></pre></div></div>
+
+<h2 id="promise的状态改变">promise的状态改变</h2>
+
+<p>实例对象中的一个属性，[PromiseState]</p>
+
+<ul>
+  <li>pending 未决定的</li>
+  <li>resolves/fullfilled 成功</li>
+  <li>rejected 失败</li>
+</ul>
+
+<p>两种状态转换</p>
+
+<ol>
+  <li>pending 变为 resolved</li>
+  <li>pending变为rejected</li>
+</ol>
+
+<h2 id="promise对象的值">Promise对象的值</h2>
+
+<p>实例对象的另一个属性【PromiseState】</p>
+
+<p>保存着异步任务【成功/失败】的结果</p>
+
+<ul>
+  <li>resolve(成功值)</li>
+  <li>reject(失败值)</li>
+</ul>
+
+<h2 id="promise的基本流程">promise的基本流程</h2>
+
+<p><img src="C:\Users\Gaohang\AppData\Roaming\Typora\typora-user-images\image-20211005160216918.png" alt="image-20211005160216918" /></p>
+
+<h2 id="peomise的api">peomise的API</h2>
+
+<ol>
+  <li>
+    <p>promise的构造函数：Promise(extutor);</p>
+
+    <p>(1)  extutor函数：执行器(resolve,reject)=&gt;{}</p>
+
+    <p>(2)  resolve函数：内部定义成功时我们调用的函数valuse=&gt;{}</p>
+
+    <p>(3)  reject函数：内部定义失败时我们调用的函数reason=&gt;{}</p>
+
+    <p>说明：extutor会在Promise内部立即同步调用，异步操作在执行器中执行</p>
+  </li>
+  <li>
+    <p>Promise.prototype.then方法：（onResolved,onRejected）=&gt;{}</p>
+
+    <p>(1)  onResolved函数：成功的回调函数(value)=&gt;{}</p>
+
+    <p>(2)  onRejected函数：失败的回调函数(reason)=&gt;{}</p>
+
+    <p>说明：指定用于得到成功value的成功回调和用于得到失败reason的失败回调返回一个新的promise对象</p>
+  </li>
+  <li>
+    <p>Promise.prototype.catch方法：(onRejected)=&gt;{}</p>
+
+    <p>(1)  onRejected函数：失败的回调函数(reason)=&gt;{}</p>
+  </li>
+  <li>
+    <p>Promise.resolve()方法：返回一个成功的Promise对象</p>
+
+    <div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">//如果传入的参数为非Promise类型的对象，则返回的结果为成功Promise对象</span>
+<span class="c1">//如果传入的参数为Promise对象，则参数的结果决定了resolve的结果</span>
+<span class="kd">let</span> <span class="nx">p1</span> <span class="o">=</span> <span class="nb">Promise</span><span class="p">.</span><span class="nx">resolve</span><span class="p">(</span><span class="mi">521</span><span class="p">);</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">p1</span><span class="p">);</span>
+<span class="kd">let</span>  <span class="nx">p2</span> <span class="o">=</span> <span class="nb">Promise</span><span class="p">.</span><span class="nx">resolve</span><span class="p">(</span><span class="k">new</span> <span class="nb">Promise</span><span class="p">((</span><span class="nx">resolve</span><span class="p">,</span><span class="nx">reject</span><span class="p">)</span><span class="o">=&gt;</span><span class="p">{</span>
+    <span class="nx">reject</span><span class="p">(</span><span class="dl">'</span><span class="s1">error</span><span class="dl">'</span><span class="p">);</span>
+<span class="p">}));</span>
+<span class="nx">p2</span><span class="p">.</span><span class="k">catch</span><span class="p">(</span><span class="nx">reason</span><span class="o">=&gt;</span><span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">reason</span><span class="p">);</span>
+<span class="p">})</span> 
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Promise.reject方法：（reason）=&gt;{}</p>
+
+    <p>(1)  reason：失败的原因</p>
+
+    <p>说明：返回一个失败的Promise对象</p>
+
+    <div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">let</span> <span class="nx">p1</span> <span class="o">=</span> <span class="nb">Promise</span><span class="p">.</span><span class="nx">reject</span><span class="p">(</span><span class="mi">521</span><span class="p">);</span>
+<span class="nx">p1</span><span class="p">.</span><span class="k">catch</span><span class="p">(</span><span class="nx">reason</span><span class="o">=&gt;</span><span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">reason</span><span class="p">);</span>
+<span class="p">});</span>
+<span class="kd">let</span> <span class="nx">p2</span> <span class="o">=</span> <span class="nb">Promise</span><span class="p">.</span><span class="nx">reject</span><span class="p">(</span><span class="k">new</span> <span class="nb">Promise</span><span class="p">((</span><span class="nx">resolve</span><span class="p">,</span><span class="nx">reject</span><span class="p">)</span><span class="o">=&gt;</span><span class="p">{</span>
+    <span class="nx">resolve</span><span class="p">(</span><span class="dl">'</span><span class="s1">ok</span><span class="dl">'</span><span class="p">);</span>
+<span class="p">}));</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">p2</span><span class="p">);</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Promise.all方法：(promises)=&gt;{}</p>
+
+    <p>(1)  promise 包含N个promise数组</p>
+
+    <p>说明：返回一个新的promise，只有所有的promise都成功才成功，只要有一个失败了就直接失败</p>
+
+    <div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">let</span> <span class="nx">p1</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Promise</span><span class="p">((</span><span class="nx">resolve</span><span class="p">,</span><span class="nx">reject</span><span class="p">)</span><span class="o">=&gt;</span><span class="p">{</span>
+    <span class="nx">resolve</span><span class="p">(</span><span class="dl">'</span><span class="s1">ok</span><span class="dl">'</span><span class="p">);</span>
+<span class="p">});</span>
+<span class="kd">let</span> <span class="nx">p2</span> <span class="o">=</span> <span class="nb">Promise</span><span class="p">.</span><span class="nx">resolve</span><span class="p">(</span><span class="dl">'</span><span class="s1">ok</span><span class="dl">'</span><span class="p">);</span>
+<span class="kd">let</span> <span class="nx">p3</span> <span class="o">=</span> <span class="nb">Promise</span><span class="p">.</span><span class="nx">resolve</span><span class="p">(</span><span class="dl">'</span><span class="s1">sucess</span><span class="dl">'</span><span class="p">);</span>
+<span class="kd">const</span> <span class="nx">p4</span> <span class="o">=</span> <span class="nb">Promise</span><span class="p">.</span><span class="nx">all</span><span class="p">([</span><span class="nx">p1</span><span class="p">,</span><span class="nx">p2</span><span class="p">,</span><span class="nx">p3</span><span class="p">]);</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">p4</span><span class="p">);</span>   
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Promise.race方法：(promises)=&gt;{}</p>
+
+    <p>(1) promise ：包含n个promise 的数组</p>
+
+    <p>说明：返回一个新的promise，第一个完成的promise的结果状态就是最终的结果状态</p>
+
+    <div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">let</span> <span class="nx">p1</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Promise</span><span class="p">((</span><span class="nx">resolve</span><span class="p">,</span><span class="nx">reject</span><span class="p">)</span><span class="o">=&gt;</span><span class="p">{</span>
+    <span class="nx">resolve</span><span class="p">(</span><span class="dl">'</span><span class="s1">ok</span><span class="dl">'</span><span class="p">);</span>
+<span class="p">});</span>
+<span class="kd">let</span> <span class="nx">p2</span> <span class="o">=</span> <span class="nb">Promise</span><span class="p">.</span><span class="nx">resolve</span><span class="p">(</span><span class="dl">'</span><span class="s1">ok</span><span class="dl">'</span><span class="p">);</span>
+<span class="kd">let</span> <span class="nx">p3</span> <span class="o">=</span> <span class="nb">Promise</span><span class="p">.</span><span class="nx">resolve</span><span class="p">(</span><span class="dl">'</span><span class="s1">sucess</span><span class="dl">'</span><span class="p">);</span>
+<span class="kd">const</span> <span class="nx">p4</span> <span class="o">=</span> <span class="nb">Promise</span><span class="p">.</span><span class="nx">race</span><span class="p">([</span><span class="nx">p1</span><span class="p">,</span><span class="nx">p2</span><span class="p">,</span><span class="nx">p3</span><span class="p">]);</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">p4</span><span class="p">);</span>   
+</code></pre></div>    </div>
+  </li>
+</ol>
+
+<h2 id="promise关键问题">Promise关键问题</h2>
+
+<h3 id="--promise对象状态改变方式">- promise对象状态改变方式</h3>
+
+<ul>
+  <li>
+    <p>通过resolve和reject或thorw</p>
+
+    <div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">let</span> <span class="nx">p</span> <span class="o">=</span>  <span class="k">new</span> <span class="nb">Promise</span><span class="p">((</span><span class="nx">resolve</span><span class="p">,</span><span class="nx">reject</span><span class="p">)</span><span class="o">=&gt;</span><span class="p">{</span>
+    <span class="c1">//resolve("成功！");  //由pending -&gt; fulfilled(resolved)</span>
+    <span class="c1">//reject("失败"); //由pendging -&gt; rejected</span>
+    <span class="k">throw</span> <span class="dl">"</span><span class="s2">出错了</span><span class="dl">"</span><span class="p">;</span> <span class="c1">//由pending -&gt; rejected</span>
+<span class="p">});</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">p</span><span class="p">);</span>
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h3 id="--一个promise指定多个成功失败回调函数都会调用吗">- 一个promise指定多个成功/失败回调函数，都会调用吗？</h3>
+
+<p>当promise改变为对应状态时都会调用</p>
+
+<div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">let</span> <span class="nx">p</span> <span class="o">=</span>  <span class="k">new</span> <span class="nb">Promise</span><span class="p">((</span><span class="nx">resolve</span><span class="p">,</span><span class="nx">reject</span><span class="p">)</span><span class="o">=&gt;</span><span class="p">{</span>
+            <span class="nx">resolve</span><span class="p">(</span><span class="dl">"</span><span class="s2">成功</span><span class="dl">"</span><span class="p">);</span>
+        <span class="p">});</span>
+        <span class="nx">p</span><span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="nx">value</span><span class="o">=&gt;</span><span class="p">{</span>
+            <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">value</span><span class="p">);</span>
+        <span class="p">});</span>
+        <span class="nx">p</span><span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="nx">value</span><span class="o">=&gt;</span><span class="p">{</span>
+            <span class="nx">alert</span><span class="p">(</span><span class="nx">value</span><span class="p">);</span>
+        <span class="p">})</span>
+</code></pre></div></div>
+
+<h3 id="改变promise状态和指定回到函数谁先谁后">改变promise状态和指定回到函数谁先谁后</h3>
+
+<p>都有可能</p>
+
+<p>当promise中的任务为同步任务时，resolve先执行，then后执行</p>
+
+<p>当peomise中的任务为异步任务时，then先执行，resolve后执行</p>
+
+<div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">let</span> <span class="nx">p</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Promise</span><span class="p">((</span><span class="nx">resolve</span><span class="p">,</span><span class="nx">reject</span><span class="p">)</span><span class="o">=&gt;</span><span class="p">{</span>
+            <span class="nx">setTimeout</span><span class="p">(()</span><span class="o">=&gt;</span><span class="p">{</span>
+                <span class="nx">resolve</span><span class="p">(</span><span class="dl">"</span><span class="s2">ok</span><span class="dl">"</span><span class="p">);</span>
+            <span class="p">},</span><span class="mi">1000</span><span class="p">)</span>
+        <span class="p">});</span>
+        <span class="nx">p</span><span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="nx">value</span><span class="o">=&gt;</span><span class="p">{</span>
+            <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">value</span><span class="p">);</span>
+        <span class="p">},</span><span class="nx">err</span><span class="o">=&gt;</span><span class="p">{</span>
+
+        <span class="p">});</span>
+</code></pre></div></div>
+
+<h3 id="then方法返回的结果由什么决定">then方法返回的结果由什么决定</h3>
+
+<p>由then方法中的回调函数返回结果（return）决定</p>
+
+<div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="kd">let</span> <span class="nx">p</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Promise</span><span class="p">((</span><span class="nx">resolve</span><span class="p">,</span><span class="nx">reject</span><span class="p">)</span><span class="o">=&gt;</span><span class="p">{</span>
+            <span class="nx">resolve</span><span class="p">(</span><span class="dl">"</span><span class="s2">ok</span><span class="dl">"</span><span class="p">);</span>
+        <span class="p">});</span>
+        <span class="kd">let</span> <span class="nx">p1</span> <span class="o">=</span> <span class="nx">p</span><span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="nx">value</span><span class="o">=&gt;</span><span class="p">{</span>
+            <span class="k">return</span> <span class="k">new</span> <span class="nb">Promise</span><span class="p">((</span><span class="nx">resolve</span><span class="p">,</span><span class="nx">reject</span><span class="p">)</span><span class="o">=&gt;</span><span class="p">{</span>
+                <span class="nx">resolve</span><span class="p">(</span><span class="dl">"</span><span class="s2">sucess</span><span class="dl">"</span><span class="p">);</span>
+            <span class="p">});</span>
+        <span class="p">},</span><span class="nx">err</span><span class="o">=&gt;</span><span class="p">{</span>
+
+        <span class="p">});</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">p1</span><span class="p">);</span>
+</code></pre></div></div>
+
+<h3 id="promise实现任务串联">promise实现任务串联</h3>
+
+<div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="kd">let</span> <span class="nx">p</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Promise</span><span class="p">((</span><span class="nx">resolve</span><span class="p">,</span><span class="nx">reject</span><span class="p">)</span><span class="o">=&gt;</span><span class="p">{</span>
+            <span class="nx">setTimeout</span><span class="p">(()</span><span class="o">=&gt;</span><span class="p">{</span>
+             <span class="nx">resolve</span><span class="p">(</span><span class="dl">"</span><span class="s2">ok</span><span class="dl">"</span><span class="p">);</span>
+            <span class="p">},</span><span class="mi">1000</span><span class="p">);</span>
+         <span class="p">});</span>
+         <span class="kd">let</span> <span class="nx">p1</span> <span class="o">=</span> <span class="nx">p</span><span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="nx">value</span><span class="o">=&gt;</span><span class="p">{</span>
+             <span class="k">return</span> <span class="k">new</span> <span class="nb">Promise</span><span class="p">((</span><span class="nx">resolve</span><span class="p">,</span><span class="nx">reject</span><span class="p">)</span><span class="o">=&gt;</span><span class="p">{</span>
+                 <span class="nx">resolve</span><span class="p">(</span><span class="dl">"</span><span class="s2">sucess</span><span class="dl">"</span><span class="p">);</span>
+             <span class="p">});</span>
+         <span class="p">}).</span><span class="nx">then</span><span class="p">(</span><span class="nx">value</span><span class="o">=&gt;</span><span class="p">{</span>
+             <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">value</span><span class="p">);</span>
+             <span class="k">return</span> <span class="dl">"</span><span class="s2">okok</span><span class="dl">"</span><span class="p">;</span>
+         <span class="p">}).</span><span class="nx">then</span><span class="p">(</span><span class="nx">value</span><span class="o">=&gt;</span><span class="p">{</span>
+             <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">value</span><span class="p">);</span>
+         <span class="p">});</span>
+</code></pre></div></div>
+
+<h2 id="async函数">async函数</h2>
+
+<p>sayns返回的结果是一个promise对象</p>
+
+<ul>
+  <li>
+    <p>如果返回值是一个非promise类型的数据，状态为成功的promise对象</p>
+
+    <div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">async</span> <span class="kd">function</span> <span class="nx">main</span><span class="p">(){</span>
+            <span class="c1">//1.如果返回值是一个非promise类型的数据，状态为成功的promise对象</span>
+            <span class="k">return</span> <span class="dl">'</span><span class="s1">521</span><span class="dl">'</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="kd">let</span> <span class="nx">n</span> <span class="o">=</span> <span class="nx">main</span><span class="p">();</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">n</span><span class="p">);</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>如果返回值是一个promise类型的对象，那么状态由resolve、reject、throw决定</p>
+
+    <div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">async</span> <span class="kd">function</span> <span class="nx">main</span><span class="p">(){</span>
+            <span class="c1">//1.如果返回值是一个非promise类型的数据，状态为成功的promise对象</span>
+            <span class="c1">// return '521';</span>
+            <span class="k">return</span> <span class="k">new</span> <span class="nb">Promise</span><span class="p">((</span><span class="nx">resolve</span><span class="p">,</span><span class="nx">reject</span><span class="p">)</span><span class="o">=&gt;</span><span class="p">{</span>
+                <span class="c1">// resolve("ok");</span>
+                <span class="c1">// reject("err");</span>
+                <span class="k">throw</span> <span class="dl">'</span><span class="s1">出错了</span><span class="dl">'</span><span class="p">;</span>
+            <span class="p">});</span>
+        <span class="p">}</span>
+        <span class="kd">let</span> <span class="nx">n</span> <span class="o">=</span> <span class="nx">main</span><span class="p">();</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">n</span><span class="p">);</span>
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h2 id="await表达式">await表达式</h2>
+
+<ol>
+  <li>await右侧一般为promise对象，但也可以是其他的值</li>
+  <li>如果表达式是promise对象，await返回的是promise成功的值</li>
+  <li>如果表达式是其他值，直接将此值作为await的返回值</li>
+</ol>
+
+<p>注：await必须写在async函数中，但async函数中可以没有await</p>
+
+<p>如果await的promise失败了，就会抛出异常，需要try…catch捕获处理</p>
+
+<ul>
+  <li>
+    <p>await右侧为promise对象</p>
+
+    <div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">async</span> <span class="kd">function</span> <span class="nx">main</span><span class="p">(){</span>
+            <span class="kd">let</span> <span class="nx">p</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Promise</span><span class="p">((</span><span class="nx">resolve</span><span class="p">,</span><span class="nx">reject</span><span class="p">)</span><span class="o">=&gt;</span><span class="p">{</span>
+                <span class="nx">resolve</span><span class="p">(</span><span class="dl">'</span><span class="s1">ok</span><span class="dl">'</span><span class="p">);</span> 
+            <span class="p">});</span>
+            <span class="c1">//1.右侧为promise的情况</span>
+            <span class="kd">let</span> <span class="nx">res</span> <span class="o">=</span> <span class="k">await</span>  <span class="nx">p</span><span class="p">;</span>
+            <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">p</span><span class="p">);</span>
+        <span class="p">}</span>
+        <span class="nx">main</span><span class="p">();</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>await右侧为其他类型的数据</p>
+
+    <pre><code class="language-javasc">async function main(){
+            let p = new Promise((resolve,reject)=&gt;{
+                resolve('ok'); 
+            });
+            //1.右侧为promise的情况
+            // let res = await  p;
+            // console.log(res);
+            //2.右侧为其他类型的数据
+            let res2 = await 20;
+            console.log(res2);
+        }
+        main();
+</code></pre>
+  </li>
+  <li>
+    <p>如果promise是失败的状态,可以通过try….catch来捕获</p>
+
+    <div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">async</span> <span class="kd">function</span> <span class="nx">main</span><span class="p">(){</span>
+            <span class="kd">let</span> <span class="nx">p</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Promise</span><span class="p">((</span><span class="nx">resolve</span><span class="p">,</span><span class="nx">reject</span><span class="p">)</span><span class="o">=&gt;</span><span class="p">{</span>
+                <span class="c1">// resolve('ok'); </span>
+                <span class="nx">reject</span><span class="p">(</span><span class="dl">"</span><span class="s2">err</span><span class="dl">"</span><span class="p">);</span>
+            <span class="p">});</span>
+            <span class="c1">//1.右侧为promise的情况</span>
+            <span class="c1">// let res = await  p;</span>
+            <span class="c1">// console.log(res);</span>
+            <span class="c1">//2.右侧为其他类型的数据</span>
+            <span class="k">try</span> <span class="p">{</span>
+  
+             <span class="kd">let</span> <span class="nx">res2</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">p</span><span class="p">;</span>
+                  
+            <span class="p">}</span> <span class="k">catch</span> <span class="p">(</span><span class="nx">error</span><span class="p">)</span> <span class="p">{</span>
+                <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">error</span><span class="p">);</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+        <span class="nx">main</span><span class="p">();</span>
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h2 id="async和await结合">async和await结合</h2>
+
+<h1 id="axios">axios</h1>
+
+<h2 id="axios的理解和使用">axios的理解和使用</h2>
+
+<ul>
+  <li>
+    <p>axios发送ajax请求</p>
+
+    <p>调用axios函数，将参数放在一个对象中。</p>
+
+    <p>第一个参数：请求类型</p>
+
+    <p>第二个参数：请求路径</p>
+
+    <p>第三个参数：请求参数</p>
+
+    <p>响应为一个promise对象</p>
+
+    <div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="c1">//获取按钮</span>
+        <span class="kd">const</span> <span class="nx">btns</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">querySelectorAll</span><span class="p">(</span><span class="dl">'</span><span class="s1">button</span><span class="dl">'</span><span class="p">);</span>
+  
+        <span class="c1">//第一个,发送get请求</span>
+        <span class="nx">btns</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="nx">onclick</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(){</span>
+            <span class="c1">//发送AJAX请求</span>
+            <span class="nx">axios</span><span class="p">({</span>
+                <span class="c1">//请求类型</span>
+                <span class="na">method</span><span class="p">:</span><span class="dl">'</span><span class="s1">GET</span><span class="dl">'</span><span class="p">,</span>
+                <span class="c1">//URL</span>
+                <span class="na">url</span><span class="p">:</span><span class="dl">'</span><span class="s1">http://localhost:3000/posts/2</span><span class="dl">'</span><span class="p">,</span>
+            <span class="p">}).</span><span class="nx">then</span><span class="p">(</span><span class="nx">respose</span><span class="o">=&gt;</span><span class="p">{</span>
+                <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">respose</span><span class="p">);</span>
+            <span class="p">});</span>
+        <span class="p">}</span>
+        <span class="c1">//第二发送POST请求,添加数据</span>
+        <span class="nx">btns</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="nx">onclick</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(){</span>
+            <span class="c1">//发送AJAX请求</span>
+            <span class="nx">axios</span><span class="p">({</span>
+                <span class="c1">//请求类型</span>
+                <span class="na">method</span><span class="p">:</span><span class="dl">'</span><span class="s1">POST</span><span class="dl">'</span><span class="p">,</span>
+                <span class="c1">//URL</span>
+                <span class="na">url</span><span class="p">:</span><span class="dl">'</span><span class="s1">http://localhost:3000/posts</span><span class="dl">'</span><span class="p">,</span> 
+                <span class="c1">//设置请求体</span>
+                <span class="na">data</span><span class="p">:{</span>
+                    <span class="dl">"</span><span class="s2">title</span><span class="dl">"</span><span class="p">:</span><span class="dl">"</span><span class="s2">今</span><span class="dl">"</span><span class="p">,</span>
+                    <span class="dl">"</span><span class="s2">author</span><span class="dl">"</span><span class="p">:</span><span class="dl">'</span><span class="s1">张三</span><span class="dl">'</span>
+                <span class="p">}</span>
+            <span class="p">}).</span><span class="nx">then</span><span class="p">(</span><span class="nx">respose</span><span class="o">=&gt;</span><span class="p">{</span>
+                <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">respose</span><span class="p">);</span>
+            <span class="p">});</span>
+        <span class="p">}</span>
+        <span class="c1">//第三个，更新数据</span>
+        <span class="nx">btns</span><span class="p">[</span><span class="mi">2</span><span class="p">].</span><span class="nx">onclick</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(){</span>
+            <span class="nx">axios</span><span class="p">({</span>
+                <span class="na">method</span><span class="p">:</span><span class="dl">'</span><span class="s1">PUT</span><span class="dl">'</span><span class="p">,</span>
+                <span class="na">url</span><span class="p">:</span><span class="dl">'</span><span class="s1">http://localhost:3000/posts/3</span><span class="dl">'</span><span class="p">,</span>
+                <span class="na">data</span><span class="p">:{</span>
+                    <span class="dl">"</span><span class="s2">title</span><span class="dl">"</span><span class="p">:</span><span class="dl">'</span><span class="s1">今天天气不好</span><span class="dl">'</span><span class="p">,</span>
+                    <span class="dl">'</span><span class="s1">author</span><span class="dl">'</span><span class="p">:</span><span class="dl">'</span><span class="s1">李四</span><span class="dl">'</span>
+                <span class="p">}</span>
+            <span class="p">}).</span><span class="nx">then</span><span class="p">(</span><span class="nx">respose</span><span class="o">=&gt;</span><span class="p">{</span>
+                <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">respose</span><span class="p">);</span>
+            <span class="p">})</span>
+        <span class="p">}</span>
+        <span class="c1">//删除数据</span>
+        <span class="nx">btns</span><span class="p">[</span><span class="mi">3</span><span class="p">].</span><span class="nx">onclick</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(){</span>
+            <span class="nx">axios</span><span class="p">({</span>
+                <span class="na">method</span><span class="p">:</span><span class="dl">'</span><span class="s1">delete</span><span class="dl">'</span><span class="p">,</span>
+                <span class="na">url</span><span class="p">:</span><span class="dl">'</span><span class="s1">http://localhost:3000/posts/4</span><span class="dl">'</span>
+            <span class="p">}).</span><span class="nx">then</span><span class="p">(</span><span class="nx">respose</span><span class="o">=&gt;</span><span class="p">{</span>
+                <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">respose</span><span class="p">);</span>
+            <span class="p">})</span>
+        <span class="p">}</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>axios中的方法</p>
+
+    <ul>
+      <li>
+        <p>axios.request()：和ajax请求差不多</p>
+
+        <p>第一个参数：请求方式</p>
+
+        <p>第二个参数：请求路径</p>
+
+        <p>返回的是一个promise对象，用then方法接收后，response是一个对象，其中有一个data对象数组，数组中存放了返回的数据</p>
+
+        <div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">&lt;</span><span class="nx">script</span><span class="o">&gt;</span>
+    <span class="nx">axios</span><span class="p">.</span><span class="nx">request</span><span class="p">({</span>
+    <span class="na">method</span><span class="p">:</span><span class="dl">'</span><span class="s1">GET</span><span class="dl">'</span><span class="p">,</span>
+    <span class="na">url</span><span class="p">:</span><span class="dl">'</span><span class="s1">http://localhost/3000/comments</span><span class="dl">'</span>
+<span class="p">}).</span><span class="nx">then</span><span class="p">(</span><span class="nx">response</span><span class="o">=&gt;</span><span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">response</span><span class="p">.</span><span class="nx">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="p">})</span>
+<span class="o">&lt;</span><span class="nx">script</span><span class="o">&gt;</span>
+</code></pre></div>        </div>
+      </li>
+      <li>
+        <p>axios.post：发送post请求</p>
+
+        <p>第一个参数：请求路径</p>
+
+        <p>第二个参数：请求体为json对象格式</p>
+
+        <p>第三个参数：配置</p>
+
+        <div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nx">axios</span><span class="p">.</span><span class="nx">post</span><span class="p">(</span><span class="dl">'</span><span class="s1">http://localhost:3000/comments</span><span class="dl">'</span><span class="p">,{</span><span class="dl">'</span><span class="s1">title</span><span class="dl">'</span><span class="p">:</span><span class="dl">'</span><span class="s1">我是一个好人</span><span class="dl">'</span><span class="p">}).</span><span class="nx">then</span><span class="p">(</span><span class="nx">response</span><span class="o">=&gt;</span><span class="p">{</span><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">response</span><span class="p">)});</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h3 id="response对象">response对象</h3>
+
+<p>第一个config：配置对象，包括请求类型，url，请求体….</p>
+
+<p>第二个data：响应体的结果，是一个json对象数组</p>
+
+<p>第三个headers：响应头信息，</p>
+
+<p>第四个request：原生ajax请求对象，status：状态码，statusText：“ok”</p>
+
+<h3 id="axios中配置对象">axios中配置对象</h3>
+
+<div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span>
+
+<span class="c1">//url参数</span>
+<span class="nl">url</span><span class="p">:</span> <span class="dl">'</span><span class="s1">/user</span><span class="dl">'</span><span class="p">,</span>
+<span class="c1">//请求方式</span>
+<span class="nx">method</span><span class="p">:</span><span class="dl">'</span><span class="s1">post</span><span class="dl">'</span><span class="p">,</span>
+<span class="c1">//baseURL：设定url的基础结构,例如http://,这样就不用每次都写了</span>
+<span class="nx">baseURL</span><span class="p">:</span><span class="dl">'</span><span class="s1">https://some-domin.com/api</span><span class="dl">'</span><span class="p">,</span>
+<span class="c1">//对请求的数据做处理，将处理后的结果向服务器发送</span>
+<span class="nx">transformRequest</span><span class="p">:[</span><span class="kd">function</span> <span class="p">(</span><span class="nx">data</span><span class="p">,</span><span class="nx">headers</span><span class="p">){</span>
+	<span class="k">return</span> <span class="nx">data</span><span class="p">;</span>
+<span class="p">}],</span>
+<span class="c1">//对响应的数据进行处理</span>
+<span class="nx">transformResponse</span><span class="p">:[</span><span class="kd">function</span> <span class="p">(</span><span class="nx">data</span><span class="p">){</span>
+    <span class="k">return</span> <span class="nx">data</span>
+<span class="p">}],</span>
+<span class="c1">//对请求头信息做配置,在一些请求中有可能要求特定的请求头信息 </span>
+<span class="nx">headers</span><span class="p">:{</span><span class="dl">'</span><span class="s1">X-Requestd-With</span><span class="dl">'</span><span class="p">},</span>
+<span class="c1">//设定url参数</span>
+<span class="nx">params</span><span class="p">{</span>
+    <span class="nl">ID</span><span class="p">:</span><span class="mi">12345</span>
+<span class="p">},</span>
+<span class="c1">//请求参数序列化</span>
+<span class="nx">paramsSerializer</span><span class="p">:</span><span class="kd">function</span> <span class="p">(</span><span class="nx">params</span><span class="p">){</span>
+    
+<span class="p">}</span><span class="err">，</span>
+<span class="nx">data</span><span class="p">:</span><span class="nx">如果是对象axios会转变为json</span><span class="err">，</span><span class="nx">如果是字符串那么直接传递</span><span class="p">,</span>
+<span class="c1">//用户名密码</span>
+<span class="nx">auth</span><span class="p">:{</span>
+    <span class="nl">username</span><span class="p">:</span><span class="dl">''</span><span class="p">,</span>
+    <span class="nx">password</span><span class="p">:</span><span class="dl">''</span>
+<span class="p">},</span>
+<span class="c1">//</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>配置文件,省略参数</p>
+
+<div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// 为给定 ID 的 user 创建请求</span>
+<span class="nx">axios</span><span class="p">.</span><span class="kd">get</span><span class="p">(</span><span class="dl">'</span><span class="s1">/user?ID=12345</span><span class="dl">'</span><span class="p">)</span>
+  <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">response</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">response</span><span class="p">);</span>
+  <span class="p">})</span>
+  <span class="p">.</span><span class="k">catch</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">error</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">error</span><span class="p">);</span>
+  <span class="p">});</span>
+
+<span class="c1">// 上面的请求也可以这样做</span>
+<span class="nx">axios</span><span class="p">.</span><span class="kd">get</span><span class="p">(</span><span class="dl">'</span><span class="s1">/user</span><span class="dl">'</span><span class="p">,</span> <span class="p">{</span>
+    <span class="na">params</span><span class="p">:</span> <span class="p">{</span>
+      <span class="na">ID</span><span class="p">:</span> <span class="mi">12345</span>
+    <span class="p">}</span>
+  <span class="p">})</span>
+  <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">response</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">response</span><span class="p">);</span>
+  <span class="p">})</span>
+  <span class="p">.</span><span class="k">catch</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">error</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">error</span><span class="p">);</span>
+  <span class="p">});</span>
+</code></pre></div></div>
+
+<h3 id="axiox中默认配置">axiox中默认配置</h3>
+
+<ul>
+  <li>axios.defaults.method = ‘GET’ //设置默认的请求类型为get</li>
+  <li>axios.defaults.baseURL = ‘http://localhost:3000’ //设置基础url，在后续使用中不用写</li>
+  <li>axios.defaults.params = {id:100}; //默认参数</li>
+  <li>axios.defaults.timeout = 3000; //3秒之后没有相应，取消这个请求</li>
+  <li>axios.defaults.headers.post[‘Content-Type’] = ‘application/x-www-form-urlencoded’;  //配置公共的 post 的 Content-Type</li>
+  <li>axios.defaults.headers.common[‘Authorization’] = AUTH_TOKEN; //在请求头配置公共的authorization配置默认的token</li>
+</ul>
+:ET
