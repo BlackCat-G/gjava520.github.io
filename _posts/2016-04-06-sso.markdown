@@ -6,8 +6,6 @@ author:     "wblearn"
 header-img: "img/post-bg-rwd.jpg"
 tags:
     - Web
-    - 闲谈
-    - sso
 ---
 
 <h2>一、单系统登录机制</h2>
