@@ -49,14 +49,13 @@ kramdown:
 #disqus_username: _your_disqus_short_name_
 
 # Duoshuo settings
-duoshuo_username: wblearnblog
+duoshuo_username: java520Blog
 # Share component is depend on Comment so we can NOT use share only.
 duoshuo_share: true                     # set to false if you want to use Comment without Sharing
 
 
 # LiveRe setttings
-# You can get your uid from https://livere.com/insight/myCode (General web site)
-livere_uid: MTAyMC8yODkzOC81NTA3
+
 
 # Analytics settings
 # Baidu Analytics 
@@ -64,7 +63,7 @@ livere_uid: MTAyMC8yODkzOC81NTA3
 
 # Google Analytics
 ga_track_id: 'UA-49627206-1'            # Format: UA-xxxxxx-xx
-ga_domain: wblearn.github.io
+ga_domain: gjava520.github.io
 
 
 
@@ -109,7 +108,7 @@ defaults:
 # Friends
 friends: [
     {
-        title: "wblearn的微博",
+        title: "gjava的微博",
         href: "https://weibo.com/7714595070/profile?rightmod=1&wvr=6&mod=personinfo"
     }
 ]
