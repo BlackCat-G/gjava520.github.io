@@ -1,10 +1,12 @@
-​	layout:     post
-​	title:      "单点登录原理与简单实现"
-​	date:       2021-10-19 12:12
-​	author:     "gJava"
-​	header-img: "img/post-bg-rwd.jpg"
-​	tags:
-  	  - axios
+---
+layout:     post
+title:      "axios和promise基础"
+date:       2021-10-19 12:00:00
+author:     "gJava"
+header-img: "img/post-bg-rwd.jpg"
+tags:
+    -axios
+---
 
 # Promise
 
