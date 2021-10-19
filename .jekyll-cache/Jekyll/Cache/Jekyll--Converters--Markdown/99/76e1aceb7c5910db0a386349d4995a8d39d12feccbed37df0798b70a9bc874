@@ -1,35 +1,21 @@
----
-layout:     post
-title:      "我的Web开发实战总结(二)"
-date:       2017-2-26 00:00:00
-author:     "wblearn"
-header-img: "img/post-bg-2015.jpg"
-tags:
-    - Web
-    - 
-    - 
----
-
-
-
- <div data-note-content class="show-content">
+I"�b<div data-note-content="" class="show-content">
           <h1>写在前面</h1>
 <p>这篇是继<a href="http://www.jianshu.com/p/185fd6942e7b" target="_blank">我的Web开发实战总结(一)</a>的第二篇文章，在此篇里，我主要总结一下如何把Web页面上的报表或列表数据转换成pdf文件下载到本地。其中涉及到的知识我也会提出来供大家交流学习。ok，开始吧~</p>
 <h1>先来看看效果</h1>
 <div class="image-package">
-<img src="http://upload-images.jianshu.io/upload_images/2556999-d4f04ff0f1b3e564.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" data-original-src="http://upload-images.jianshu.io/upload_images/2556999-d4f04ff0f1b3e564.png?imageMogr2/auto-orient/strip%7CimageView2/2"><br><div class="image-caption">Web页面上的列表数据</div>
+<img src="http://upload-images.jianshu.io/upload_images/2556999-d4f04ff0f1b3e564.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" data-original-src="http://upload-images.jianshu.io/upload_images/2556999-d4f04ff0f1b3e564.png?imageMogr2/auto-orient/strip%7CimageView2/2" /><br /><div class="image-caption">Web页面上的列表数据</div>
 </div>
 <p>上图就是Web页面上的列表数据，将其右侧生成pdf之后的效果如下：</p>
 <div class="image-package">
-<img src="http://upload-images.jianshu.io/upload_images/2556999-566937ade0ec943e.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" data-original-src="http://upload-images.jianshu.io/upload_images/2556999-566937ade0ec943e.png?imageMogr2/auto-orient/strip%7CimageView2/2"><br><div class="image-caption">生成的pdf文件</div>
+<img src="http://upload-images.jianshu.io/upload_images/2556999-566937ade0ec943e.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" data-original-src="http://upload-images.jianshu.io/upload_images/2556999-566937ade0ec943e.png?imageMogr2/auto-orient/strip%7CimageView2/2" /><br /><div class="image-caption">生成的pdf文件</div>
 </div>
 <h1>实现思路</h1>
 <p>这里我提出两种实现思路：</p>
-<blockquote><p>1.利用Jacob将EXCEL转成PDF<br>2.利用iText将HTML 转为 PDF</p></blockquote>
-<p><strong>1.利用Jacob将EXCEL转成PDF</strong><br>一开始我用的这种思路，主要是因为有生成EXCEL的功能了，想着只要利用jacob再讲EXCEL转成PDF即可，但是后来放弃了。虽然jacob可以生成pdf，word，excel等，但经过本人的实操，问题多多，还要放dll文件到bin目录下。</p>
+<blockquote><p>1.利用Jacob将EXCEL转成PDF<br />2.利用iText将HTML 转为 PDF</p></blockquote>
+<p><strong>1.利用Jacob将EXCEL转成PDF</strong><br />一开始我用的这种思路，主要是因为有生成EXCEL的功能了，想着只要利用jacob再讲EXCEL转成PDF即可，但是后来放弃了。虽然jacob可以生成pdf，word，excel等，但经过本人的实操，问题多多，还要放dll文件到bin目录下。</p>
 <p><strong>首先</strong>，Dispatch.call(sheet,"Activate");指定活动sheet，这个是没有问题，设置哪一个就打哪一个，但是也只是当前的一个，其他的没有显示，对于有多个SHEET的EXCEL 怎么能这一次全部转到一个PDF上？实现是可以实现：遍历sheet保存多个pdf文件，通过itextpdf再将这多个PDF合成一个，不过效率偏低。</p>
 <p><strong>其次</strong>，jacob是对EXCEL中的每个单元格操作的，像上面的PDF中有图片读取很不方便，就算能打出图片也可能会很模糊，而且复杂的EXCEL更是无能为力。所以我建议大家使用第二种利用iText将HTML 转为 PDF，我也是用的第二种思路实现的。</p>
-<p><strong>2.利用iText将HTML 转为 PDF</strong><br>这个思路就是我此篇要重点要讲的，将html转成PDF，首先html有图片，还有各种数据，那么怎么将图片和各种数据填充到html里面呢？这个问题非常好，有童鞋会说，将他们追加拼接到html里，我只想说：大兄弟，别呀，这样太蠢了。这里我们可以利用 freemarker，<strong>首先创建一个FreeMarker模板文件（*.ftl），在这个文件中加入FreeMarker表达式，这些表达式就好比jsp中的jstl标签一样，我们在程序中将数据传递给此文件中即可，在客户端显示时会被真实的数据替换。</strong>下面开始实现过程了。</p>
+<p><strong>2.利用iText将HTML 转为 PDF</strong><br />这个思路就是我此篇要重点要讲的，将html转成PDF，首先html有图片，还有各种数据，那么怎么将图片和各种数据填充到html里面呢？这个问题非常好，有童鞋会说，将他们追加拼接到html里，我只想说：大兄弟，别呀，这样太蠢了。这里我们可以利用 freemarker，<strong>首先创建一个FreeMarker模板文件（*.ftl），在这个文件中加入FreeMarker表达式，这些表达式就好比jsp中的jstl标签一样，我们在程序中将数据传递给此文件中即可，在客户端显示时会被真实的数据替换。</strong>下面开始实现过程了。</p>
 <h1>利用iText将HTML 转为 PDF</h1>
 <p><strong>1.准备好生成pdf所需的jar包</strong></p>
 <ul>
@@ -44,7 +30,7 @@ tags:
 <p>这里我将它们打包免费分享出来，下载地址：<a href="http://download.csdn.net/detail/wudalang_gd/9764273" target="_blank">itext生成pdf所需的jar包</a></p>
 <p><strong>2.创建ftl模板文件</strong></p>
 <div class="image-package">
-<img src="http://upload-images.jianshu.io/upload_images/2556999-35a459345a7a545c.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" data-original-src="http://upload-images.jianshu.io/upload_images/2556999-35a459345a7a545c.png?imageMogr2/auto-orient/strip%7CimageView2/2"><br><div class="image-caption"></div>
+<img src="http://upload-images.jianshu.io/upload_images/2556999-35a459345a7a545c.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" data-original-src="http://upload-images.jianshu.io/upload_images/2556999-35a459345a7a545c.png?imageMogr2/auto-orient/strip%7CimageView2/2" /><br /><div class="image-caption"></div>
 </div>
 <p><em>创建一个FreeMarker模板文件（</em>.ftl），在这个文件中加入FreeMarker表达式，这些表达式就好比jsp中的jstl标签一样，我们在程序中将数据传递给此文件中即可，在客户端显示时会被真实的数据替换。说白了，ftl模板文件就是在html里加入了FreeMarker表达式，所以里面的内容基本跟html一样，我们可以先创建html文件，修改完成后再将文件后缀改成.ftl即可。*本文.ftl模板如下：</p>
 <blockquote><p>arDraftBillPreview.ftl</p></blockquote>
@@ -160,10 +146,10 @@ tags:
 &lt;/html&gt;</code></pre>
 <p><em>以上代码在myeclipse中预览的效果如下：</em></p>
 <div class="image-package">
-<img src="http://upload-images.jianshu.io/upload_images/2556999-c6416e4d6ef17365.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" data-original-src="http://upload-images.jianshu.io/upload_images/2556999-c6416e4d6ef17365.png?imageMogr2/auto-orient/strip%7CimageView2/2"><br><div class="image-caption"></div>
+<img src="http://upload-images.jianshu.io/upload_images/2556999-c6416e4d6ef17365.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" data-original-src="http://upload-images.jianshu.io/upload_images/2556999-c6416e4d6ef17365.png?imageMogr2/auto-orient/strip%7CimageView2/2" /><br /><div class="image-caption"></div>
 </div>
 <p><strong>注意：如果使用不存在的freemarker指令，FreeMarker不会使用模板输出，而是产生一个错误消息。其次，在写ftl模板的时候，因为xmlworker支持的CSS样式极少，所以模板内容要尽量简单。对于DOCTYPE和html标签的约束页比较严格。对于一个标签中含有中文、数字或英文的时候，很可能会出现问题。这是因为xmlworker在渲染PDF的时候是以html的标签为单位的。我发现有些字体下部分中文生成pdf不会显示。</strong>另外，对于freemarker模板语言不熟悉的童鞋，我会在文末贴出一些参考资料。</p>
-<p><strong>3.向ftl模板文件中填充数据，同时将其生成html</strong><br>在业务处理层，将数据传递个ftl ，同时解析ftl模板生成html</p>
+<p><strong>3.向ftl模板文件中填充数据，同时将其生成html</strong><br />在业务处理层，将数据传递个ftl ，同时解析ftl模板生成html</p>
 <pre><code>//将需要在客户端浏览器中显示的业务数据放在一个map中，传递给FreeMarker   
                 Map&lt;String, Object&gt; map = new HashMap&lt;String, Object&gt;();  
                 map.put("imgPath", imgPath);
@@ -171,7 +157,7 @@ tags:
                 map.put("dataList", dataList);  
                 map.put("total", total);  
                 TemplateParseUtil.parse(templatePath, "arDraftBillPreview.ftl", htmlPath, map);</code></pre>
-<p>解析ftl模板生成html(此方法与生成Excel,xml等通用)，这里我写了一个工具类<br><em>TemplateParseUtil.java</em></p>
+<p>解析ftl模板生成html(此方法与生成Excel,xml等通用)，这里我写了一个工具类<br /><em>TemplateParseUtil.java</em></p>
 <pre><code>public class TemplateParseUtil {
     /**
      * 解析模板生成html(此方法与生成Excel,xml等通用)
@@ -229,7 +215,7 @@ tags:
                         new FileInputStream(htmlPath), Charset.forName("UTF-8"));
                 // step 5
                 document.close();</code></pre>
-<p><strong>5.完整处理逻辑</strong><br>可能写到这里代码有点分散，这里将上面3、4步骤的代码完整逻辑贴出来，让大家看的清晰明白点：</p>
+<p><strong>5.完整处理逻辑</strong><br />可能写到这里代码有点分散，这里将上面3、4步骤的代码完整逻辑贴出来，让大家看的清晰明白点：</p>
 <pre><code>/**
      * 
      * 草稿账单pdf导出
@@ -328,12 +314,12 @@ tags:
                 return ControllerUtils.buildSimpleResult(true, DEST);
             }
         };</code></pre>
-<p>在上面的程序中，包括PDF上的图片，表头及表身数据都传给ftl模板中了，在生成PDF之前，都会先生成一个.html的文件到tempFile的文件夹下，如下：<br></p><div class="image-package">
-<img src="http://upload-images.jianshu.io/upload_images/2556999-19f0aadaaaa89ebb.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" data-original-src="http://upload-images.jianshu.io/upload_images/2556999-19f0aadaaaa89ebb.png?imageMogr2/auto-orient/strip%7CimageView2/2"><br><div class="image-caption"></div>
+<p>在上面的程序中，包括PDF上的图片，表头及表身数据都传给ftl模板中了，在生成PDF之前，都会先生成一个.html的文件到tempFile的文件夹下，如下：<br /></p><div class="image-package">
+<img src="http://upload-images.jianshu.io/upload_images/2556999-19f0aadaaaa89ebb.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" data-original-src="http://upload-images.jianshu.io/upload_images/2556999-19f0aadaaaa89ebb.png?imageMogr2/auto-orient/strip%7CimageView2/2" /><br /><div class="image-caption"></div>
 </div>
 <h1>写在最后</h1>
 <p>其实整个过程都比较简单，难就难在一开始你不知道用那种方式去实现，这种时候我建议你都试试，毕竟一个东西你试过之后才知道好不好，适不适合。还有一点就是，对于你不知道的东西，网上一般都有很多参考资料，一定要善于利用搜索引擎学习。关于学习，就三点：坚持，坚持，坚持。</p>
-<p>下面列出一些相关链接供大家参考：<br><a href="http://piperzero.iteye.com/blog/1660540" target="_blank">iText入门</a><br><a href="http://www.cnblogs.com/Iran1112/p/6013474.html" target="_blank">动态jsp页面转PDF输出到页面</a><br><a href="http://www.open-open.com/lib/view/open1402448471822.html" target="_blank">最简单 iText 的 PDF 生成方案（含中文解决方案）HTML 转为 PDF</a><br><a href="http://carolli.iteye.com/blog/1387838" target="_blank">ftl 入门</a><br><a href="http://lavasoft.blog.51cto.com/62575/716825/" target="_blank">Freemarker 最简单的例子程序</a><br><a href="http://format-me.iteye.com/blog/543905" target="_blank">FreeMarker 例子</a><br><a href="http://blog.csdn.net/u010722643/article/details/41732607" target="_blank">freemarker生成excel、word、html、xml实例教程</a><br><a href="http://lauy.iteye.com/blog/1774880" target="_blank">freemarker判断对象是否为空</a></p>
+<p>下面列出一些相关链接供大家参考：<br /><a href="http://piperzero.iteye.com/blog/1660540" target="_blank">iText入门</a><br /><a href="http://www.cnblogs.com/Iran1112/p/6013474.html" target="_blank">动态jsp页面转PDF输出到页面</a><br /><a href="http://www.open-open.com/lib/view/open1402448471822.html" target="_blank">最简单 iText 的 PDF 生成方案（含中文解决方案）HTML 转为 PDF</a><br /><a href="http://carolli.iteye.com/blog/1387838" target="_blank">ftl 入门</a><br /><a href="http://lavasoft.blog.51cto.com/62575/716825/" target="_blank">Freemarker 最简单的例子程序</a><br /><a href="http://format-me.iteye.com/blog/543905" target="_blank">FreeMarker 例子</a><br /><a href="http://blog.csdn.net/u010722643/article/details/41732607" target="_blank">freemarker生成excel、word、html、xml实例教程</a><br /><a href="http://lauy.iteye.com/blog/1774880" target="_blank">freemarker判断对象是否为空</a></p>
 <p> 阅读我的其他文章</p>
 <blockquote><ul>
 <li><a href="http://www.jianshu.com/p/292da3de5bcd" target="_blank">1024程序员节，向改变世界的程序员致敬</a></li>
@@ -342,3 +328,4 @@ tags:
 </ul></blockquote>
 
         </div>
+:ET
