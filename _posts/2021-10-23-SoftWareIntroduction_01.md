@@ -1,6 +1,6 @@
 ---
 layout:     post
-title:      "软导第一张"
+title:      "软导第一章"
 date:       2021-10-23 18:52:00
 author:     "Gh"
 header-img: "img/post-bg-rwd.jpg"
